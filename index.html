@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简易讨论区</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>自由讨论区</h1>
+      <p>无需注册，自由发言</p>
+    </header>
+
+    <div class="post-form">
+      <input type="text" id="author" placeholder="昵称（可选）">
+      <textarea id="content" placeholder="输入你的想法..."></textarea>
+      <button id="submit">发布</button>
+    </div>
+
+    <div class="posts" id="posts-container"></div>
+  </div>
+
+  <script>
+    // 加载帖子
+    async function loadPosts() {
+      try {
+        const res = await fetch('/api/posts');
+        const posts = await res.json();
+        
+        const container = document.getElementById('posts-container');
+        container.innerHTML = posts.length ? '' : '<p>还没有讨论内容</p>';
+        
+        posts.forEach(post => {
+          const postEl = document.createElement('div');
+          postEl.className = 'post';
+          postEl.innerHTML = `
+            <div class="post-header">
+              <span class="author">${post.author}</span>
+              <span class="time">${new Date(post.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="content">${post.content}</div>
+          `;
+          container.appendChild(postEl);
+        });
+      } catch (err) {
+        console.error('加载失败:', err);
+      }
+    }
+
+    // 提交新帖子
+    document.getElementById('submit').addEventListener('click', async () => {
+      const content = document.getElementById('content').value.trim();
+      if (!content) return alert('请输入内容');
+
+      try {
+        const author = document.getElementById('author').value.trim();
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author, content })
+        });
+
+        if (res.ok) {
+          document.getElementById('content').value = '';
+          loadPosts();
+        }
+      } catch (err) {
+        console.error('提交失败:', err);
+      }
+    });
+
+    // 初始加载
+    loadPosts();
+    // 每30秒刷新
+    setInterval(loadPosts, 30000);
+  </script>
+</body>
+</html>
